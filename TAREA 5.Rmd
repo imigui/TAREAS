@@ -1,0 +1,121 @@
+---
+title: "TAREA 5"
+author: "Miguel Gutiérrez"
+date: "2025-04-15"
+output: html_document
+---
+
+```{r, echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(discrtr) # A companion package for the book Introduction to Discrete Choice Analysis with `R`
+library(dplyr) # A Grammar of Data Manipulation
+library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
+library(mlogit) # Multinomial Logit Models
+library(readr) # Read Rectangular Text Data
+library(gplots) # Various R Programming Tools for Plotting Data
+#library(ggmosaic) # Mosaic Plots in the 'ggplot2' Framework
+library(treemapify)
+library(ggridges)
+library(ggalluvial)
+library(evd)
+#library(htmlwidgets) # HTML Widgets for R
+library(kableExtra) # Construct Complex Table with kable and Pipe Syntax
+#library(plotly) # Create interactive web graphics
+library(tidyr) # Tidy messy data
+library(webshot2) # Take screenshots of web pages
+library(evd)
+```
+
+EJERCICIOS DEL CAPÍTULO 6
+
+#### 1. ¿Cuál es la diferencia entre un efecto marginal y una elasticidad?
+
+El efecto marginal nos indica cuánto se modifica una variable y al variar en una unidad otra variable xk
+
+ . En contraste, la elasticidad evalúa la sensibilidad de y ante las alteraciones de xk
+
+#### 2. ¿Por qué no es apropiado calcular la elasticidad de una variable dummy?
+
+Para variables cualitativas como las variables dummy, los efectos marginales y las elasticidades no son interpretables. La lógica de analizar cambios infinitesimales o proporcionales no aplica a categorías discretas
+
+
+#### 3. Usa el Modelo 3 de este capítulo y calcula los efectos marginales y las elasticidades del costo de operación en la media de todas las variables.
+
+```{r}
+
+data("Heating")
+
+H <- Heating %>% mlogit.data(shape = "wide", choice="depvar", varying=c(3:12))
+
+model3 <- mlogit(depvar ~ ic + oc, data = Heating, shape = "wide", choice = "depvar", reflevel = "ec", varying = 3:12
+)
+
+medias <- Heating[1, ]
+
+mean_cost <- Heating %>%
+  select(starts_with("ic"), starts_with("oc")) %>%
+  summarise(across(.cols = everything(), mean))
+
+medias[3:12] <- mean_cost
+
+efectos_marginales <- effects(model3, covariate = "oc", type = "ra", data = mlogit.data(medias, shape = "wide", choice = "depvar", varying = 3:12))
+print("Efectos marginales:")
+print(efectos_marginales)
+
+elasticidades <- effects(model3, covariate = "oc", type = "rr", data = mlogit.data(medias, shape = "wide", choice = "depvar", varying = 3:12))
+print("Elasticidades:")
+print(elasticidades)
+
+```
+
+#### 4. Usa el Modelo 3 de este capítulo para calcular el reembolso necesario para alcanzar una tasa de penetración del 10% de las bombas de calor.
+
+```{r}
+
+rebates <- seq(0, 2000, by = 50)
+
+hp_shares <- numeric(length(rebates))
+
+Heating_original <- Heating
+
+for (i in seq_along(rebates)) {
+  Heating_temp <- Heating_original
+  Heating_temp$ic.hp <- Heating_temp$ic.hp - rebates[i]
+  
+  Heating_long <- mlogit.data(Heating_temp, shape = "wide", choice = "depvar",
+                              varying = 3:12, id.var = "idcase")
+  
+  prob_temp <- predict(model3, newdata = Heating_long, type = "probabilities")
+  
+  hp_shares[i] <- mean(prob_temp[, "hp"])
+}
+
+target_share <- 0.10
+required_rebate <- rebates[min(which(hp_shares >= target_share))]
+required_rebate
+
+```
+El modelo nosdice, 450 unidades  para alcanzar la estimación.
+
+#### Estima un nuevo modelo que extienda el Modelo 3 incorporando la edad del jefe del hogar. Usa el sistema eléctrico de habitación (“er”) como nivel de referencia.
+
+```{r}
+
+model4 <- mlogit(depvar ~ ic + oc | agehed, Heating, shape = "wide", choice = "depvar", reflevel = "er", varying = c(3:12))
+
+summary(model4)
+
+```
+
+#### 5. Usa el likelihood ratio test para comparar tu nuevo modelo con el Modelo 3. Discute los resultados.
+```{r}
+
+lrtest(model3, model4)
+
+```
+Incorporar la variable  mejoró levemente el ajuste del modelo (likelihood ratio test aumentó), pero esta mejora no es lo suficientemente grande como para ser considerada estadísticamente significativa. Por lo tanto, se puede inferir que la edad del jefe del hogar no tiene un efecto importante en la probabilidad de seleccionar bombas de calor en este caso.
+
+#### ¿Es significativo el cociente entre el coeficiente del costo de instalación (u operación) y el coeficiente de la edad del jefe del hogar? Explica.
+Combina varios tipos de variables, eso nos dice que es imposible interpretarlo. 

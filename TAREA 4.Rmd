@@ -1,0 +1,127 @@
+---
+title: "TAREA 4"
+author: "Miguel Gutiérrez"
+date: "2025-04-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(discrtr)
+library(dplyr)
+library(ggplot2)
+library(mlogit) 
+library(readr)
+library(stargazer) 
+library(gplots)
+#library(ggmosaic)
+library(treemapify)
+library(ggridges)
+library(ggalluvial)
+library(evd)
+#library(htmlwidgets)
+library(kableExtra)
+#library(plotly)
+library(tidyr)
+library(webshot2)
+```
+
+##### Ejercicios del capítulo 5 <b>"Practical Issues in the Specification and Estimation of Discrete Choice Models"</b>. Considerar como referencia las notas del respectivo capítulo.
+
+```{r}
+
+data("mc_commute_wide", package = "discrtr")
+
+mc_commute_long <- mc_commute_wide |> 
+mlogit.data(shape="wide",
+            choice = "choice",
+            varying = 3:22)
+
+mc_commute_predict <- mc_commute_long[1:52, ]
+mc_commute_predict$sidewalk_density <- rep(seq(from=0, to=60, by=5), each=4)
+
+```
+
+
+##### 1.En el ejemplo de este capítulo, estimamos las probabilidades de elegir diferentes modos al establecer la densidad de la acera en la mediana de la muestra para el tiempo de viaje. Utilice el modelo 2 para calcular la probabilidad de elegir diferentes modos con la mediana de la muestra para la densidad de la acera, pero ahora para tiempos de viaje de 20, 30 y 40 minutos. Discuta los resultados.
+
+
+```{r}
+
+f2 <- mFormula(choice ~ time | sidewalk_density)
+
+model2 <- mlogit(f2, mc_commute_long)
+
+times <- c(20, 30, 40)
+results <- list()
+
+for (t in times) {
+    mc_commute_predict$time <- t
+    probs <- predict(model2, newdata=mc_commute_predict)
+    results[[as.character(t)]] <- probs
+}
+
+for (t in times) {
+    cat("\nProbabilities for travel time =", t, "minutes:\n")
+    print(results[[as.character(t)]])
+}
+
+```
+Este modelo, denominado f2, establece que el tiempo de viaje influye de manera homogénea en todas las alternativas. Así, un aumento en el tiempo de viaje conlleva una disminución proporcional en la utilidad de cada una.
+
+##### 2. Estime un modelo utilizando la fórmula f3 (llámelo modelo 3). Discuta los resultados de este modelo.
+
+```{r}
+
+f3 <- mFormula(choice ~ 0 | sidewalk_density | time)
+
+model3 <- mlogit(f3, mc_commute_long)
+
+summary(model3)
+
+```
+En el modelo 3, se relaja la restricción de un efecto uniforme del tiempo, permitiendo que cada modo de transporte responda de manera particular a los cambios en la duración del viaje.
+
+##### 3. Utilice el modelo 3 para calcular la probabilidad de elegir diferentes modos con la mediana de la muestra para la densidad de la acera, pero ahora para tiempos de viaje de 20, 30 y 40 minutos. Discuta los resultados.
+
+```{r}
+
+times <- c(20, 30, 40)
+results <- list()
+
+for (t in times) {
+    mc_commute_predict$time <- t
+    probs <- predict(model3, newdata=mc_commute_predict)
+    results[[as.character(t)]] <- probs
+}
+
+for (t in times) {
+    cat("\nProbabilities for travel time =", t, "minutes:\n")
+    print(results[[as.character(t)]])
+}
+
+```
+
+ Al aumentar el tiempo necesario para viajar, la gente tiende a descartar el coche, el autobús y la caminata. En cambio, la probabilidad de que elijan la bicicleta como medio de transporte crece.
+
+##### 4. En el caso general, ¿cuál es el valor de la función de log-verosimilitud del modelo nulo (Equiprobable)?
+
+```{r}
+
+f0 <- mFormula(choice ~ 1)
+model0 <- mlogit(f0, mc_commute_long)
+summary(model0)
+
+```
+##### 5. ¿Utilice la prueba de razón de verosimilitud para comparar el modelo 3 con el modelo 2? Discuta los resultados. ¿Qué restricciones necesitaría imponer en el modelo 3 para obtener el modelo 2?
+
+```{r}
+
+lrtest(model2, model3)
+
+```
+Los resultados sugieren que el modelo 3 (model3) ofrece una representación significativamente más adecuada de los datos en comparación con el modelo 2 (model2). Esta mejora estadística se logra al permitir que la influencia del tiempo de viaje sea específica para cada modo.
+
+

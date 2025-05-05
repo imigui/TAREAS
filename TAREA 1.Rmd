@@ -1,0 +1,105 @@
+---
+title: "TAREA 1"
+author: "Miguel Gutiérrez"
+date: "2025-05-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+#library(plotly)
+library(tidyverse)
+library(discrtr) # A companion package for the book Introduction to Discrete Choice Analysis with `R`
+library(mlogit) # Multinomial Logit Models
+library(readr) # Read Rectangular Text Data
+```
+
+## Datos, Modelos y Software. Ejercicios
+
+Invoca el conjunto de datos Mode del paquete mlogit. Para hacer esto, primero necesitas cargar el paquete. Este es un conjunto de datos con opciones sobre el modo de transporte. Esto se hace de la siguiente manera:
+```{r}
+data("Mode")
+```
+
+Una vez que hayas cargado el conjunto de datos, responde las siguientes preguntas: Describe este conjunto de datos. ¿Cuántas variables hay y de qué tipo son (es decir, categóricas/cuantitativas)?
+
+```{r}
+glimpse(Mode)
+```
+
+453 datos
+
+
+
+¿Cuántos modos de transporte diferentes hay en este conjunto de datos? ¿Cuál es el modo más popular? ¿Cuál es el modo menos popular?
+```{r}
+summary(Mode)
+```
+```{r}
+ggplot(Mode)+
+  geom_bar(aes(choice, fill=choice), color="black", show.legend = FALSE)+
+  theme_bw()
+```
+
+
+En general, ¿cuál es el modo más caro? ¿El menos caro?
+```{r}
+ggplot(Mode)+
+  geom_density(aes(cost.car, fill="car"), color="black", alpha=0.5)+
+  geom_density(aes(cost.carpool , fill="carpool"), color="black", alpha=0.5)+
+  geom_density(aes(cost.bus, fill="bus"), color="black", alpha=0.5)+
+  geom_density(aes(cost.rail, fill="rail"), color="black", alpha=0.5)+
+  scale_fill_manual(values=c("car"= "red3", "carpool"="blue4", "bus"="yellow2", "rail"="green3"), name="Mode")+
+  xlab("Cost")+
+theme_bw()
+  
+```
+
+
+
+Crea un gráfico que muestre las distribuciones univariadas del tiempo en coche y el tiempo en autobús. Comenta.
+
+```{r}
+grafica_time <- ggplot(Mode)+
+  geom_density(aes(time.car, fill="car"), color="black", alpha=0.5)+
+  geom_density(aes(time.carpool , fill="carpool"), color="black", alpha=0.5)+
+  geom_density(aes(time.bus, fill="bus"), color="black", alpha=0.5)+
+  geom_density(aes(time.rail, fill="rail"), color="black", alpha=0.5)+
+  scale_fill_manual(values=c("car"= "red3", "carpool"="blue3", "bus"="green3", "rail"="yellow2"), name="Mode")+
+  xlab("Time")+
+theme_bw()
+
+
+#ggplotly(grafica_time)  
+```
+
+¿Cómo se relacionan las elecciones con el costo según los diferentes modos?
+```{r}
+varnum <- Mode |> dplyr::select(where(is.numeric))
+varnum <- names(varnum)
+
+for (var in varnum) {
+grafica_box <- ggplot(Mode)+
+  geom_boxplot(aes(choice, eval(as.name(var)), fill=choice), show.legend=FALSE)+
+  ylab(var)+
+  theme_bw()
+  
+  print(grafica_box)
+    
+}
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
